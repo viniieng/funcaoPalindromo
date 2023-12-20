@@ -23,30 +23,24 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
         if (dataParametro == null || dataParametro.trim().isEmpty()) {
             return createErrorResponse(400, "DataParametro is null or empty");
         }
-
-        LocalDate data = null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate data = LocalDate.parse(dataParametro, formatter);
 
         try {
-            if (LocalDate.parse(dataParametro, DateTimeFormatter.ofPattern("dd/MM/yyyy")).equals(LocalDate.now())) {
-                verificarDataHoje(LocalDate.now(), context);
-                procurarPalindromo(LocalDate.now(), context);
-            } else {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                data = LocalDate.parse(dataParametro, formatter);
-
-                dataHojePalindromo(data, context);
-                procurarPalindromo(data, context);
+            APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
+            responseEvent.setStatusCode(200);
+            boolean isPalindromo = verificaPalindromo(dataParametro);
+            if(isPalindromo){
+                responseEvent.setBody("A data " + dataParametro + " é um palíndromo");
+            } else{
+                responseEvent.setBody("A data " + dataParametro + " não é um palíndromo. " +
+                        "A próxima data palíndromo é: " + procurarPalindromo(data, context));
             }
+            return responseEvent;
         } catch (Exception e) {
             context.getLogger().log("Error parsing date: " + e.getMessage());
             return createErrorResponse(400, "Error parsing date: " + e.getMessage());
         }
-
-        APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
-        responseEvent.setStatusCode(200);
-        responseEvent.setBody("Success - Palindrome Check: " + verificaPalindromo(dataParametro));
-
-        return responseEvent;
     }
 
     private APIGatewayProxyResponseEvent createErrorResponse(int statusCode, String message) {
@@ -56,33 +50,17 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
         return responseEvent;
     }
 
-    public static void verificarDataHoje(LocalDate dataHoje, Context context) {
-        // Chamando a função de verificação
-        dataHojePalindromo(dataHoje, context);
-    }
-
-    public static void dataHojePalindromo(LocalDate data, Context context) {
-        DateTimeFormatter formatoBrasileiro = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String dataFormatada = data.format(formatoBrasileiro);
-
-        context.getLogger().log("A data: " + dataFormatada + " !! ");
-
-        if (verificaPalindromo(dataFormatada)) {
-            context.getLogger().log("é um palíndromo ");
-        } else {
-            context.getLogger().log("não é um palíndromo ");
-        }
-    }
-
-    public static void procurarPalindromo(LocalDate data, Context context) {
+    public static String procurarPalindromo(LocalDate data, Context context) {
         DateTimeFormatter formatoBrasileiro = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String dataTemp = data.format(formatoBrasileiro);
 
         if (verificaPalindromo(dataTemp)) {
             context.getLogger().log("A próxima data em palíndromo será: " + dataTemp);
+            return dataTemp;
         } else {
             LocalDate buscaPalindromo = data.plusDays(1);
-            procurarPalindromo(buscaPalindromo, context);
+           return procurarPalindromo(buscaPalindromo, context);
+
         }
     }
 
